@@ -1,11 +1,28 @@
 use std::{ops::{Mul, AddAssign, Add}};
 use rand::{Rng, prelude::Distribution, distributions::Standard};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Array<T> {
     pub rows: usize,
     pub cols: usize,
     pub data: Vec<T>,
+}
+
+impl Array<f64> {
+    pub fn random(rows: usize, cols: usize) -> Self {
+        let mut rng = rand::thread_rng();
+        let data = (0..rows * cols).map(|_| rng.gen::<f64>() - 0.5).collect();
+        Array { rows, cols, data }
+    }
+}
+
+impl Array<i32> {
+    // todo{}
+    pub fn random(rows: usize, cols: usize) -> Self {
+        let mut rng = rand::thread_rng();
+        let data = (0..rows * cols).map(|_| rng.gen::<i32>() - 0).collect();
+        Array { rows, cols, data }
+    }
 }
 
 impl<T> Array<T>
@@ -17,11 +34,11 @@ where
         Array { rows, cols, data: vec![T::from(0); rows * cols] }
     }
 
-    pub fn random(rows: usize, cols: usize) -> Self {
-        let mut rng = rand::thread_rng();
-        let data = (0..rows * cols).map(|_| rng.gen::<T>()).collect();
-        Array { rows, cols, data }
-    }
+    // pub fn random(rows: usize, cols: usize) -> Self {
+    //     let mut rng = rand::thread_rng();
+    //     let data = (0..rows * cols).map(|_| rng.gen::<T>() - 0.5).collect();
+    //     Array { rows, cols, data }
+    // }
 
     pub fn fill(rows: usize, cols: usize, value: T) -> Self {
         Array { rows, cols, data: vec![value; rows * cols] }

@@ -48,22 +48,24 @@ impl Sequential  {
             for i in 0..iters + 1 {
                 let mut error_sum = vec![0.0; truth[0].len()];
                 let mut bs = batch_size;
+                // for leftover
                 if i == iters {
                     bs = sample_len % batch_size;
                 }
 
-                for b in 0..bs {
-                    let mut temp_input = &input[i * batch_size + b];
-                    let mut temp_output: Vec<f64>;
-                    for l in self.layers.iter_mut() {
-                        temp_output = l.forward_prop(temp_input);
-                        temp_input = &temp_output;
-                    }
-                    err += MSE::calculate(&truth[i], temp_input);
-                    error_sum = error_sum.iter().zip(temp_input.iter()).map(|(&e, &o)| e + o).collect();
-                }
-
                 if bs > 0 {
+                    for b in 0..bs {
+                        let mut temp_input = &input[i * batch_size + b];
+                        let mut temp_output: Vec<f64>;
+                        
+                        for l in self.layers.iter_mut() {
+                            temp_output = l.forward_prop(temp_input);
+                            temp_input = &temp_output;
+                        }
+                        err += MSE::calculate(&truth[i], temp_input);
+                        error_sum = error_sum.iter().zip(temp_input.iter()).map(|(&e, &o)| e + o).collect();
+                    }
+                
                     // backward propagation
                     let loss = MSE::derivative(&truth[i], &error_sum);
                     let mut back_input = &loss;

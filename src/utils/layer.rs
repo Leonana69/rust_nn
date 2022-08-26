@@ -99,7 +99,7 @@ impl DenseLayer {
     pub fn new(rows: usize, cols: usize) -> Self {
         DenseLayer {
             input: Array::empty(rows, 1),
-            weights: Array::random(rows, cols),
+            weights: Array::<f64>::random(rows, cols),
             bias: Array::empty(1, cols),
         }
     }
