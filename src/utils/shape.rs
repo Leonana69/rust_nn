@@ -1,6 +1,6 @@
 use std::{ops::{Mul, AddAssign, Add}};
 use rand::{Rng, prelude::Distribution, distributions::Standard};
-
+use std::time::{Instant};
 #[derive(Clone, Debug)]
 pub struct Array<T> {
     pub rows: usize,
@@ -51,14 +51,18 @@ where
             let mut out: Array<T> = Array::empty(self.rows, b.cols);
             let cols_a = self.cols;
             let cols_b = b.cols;
+
+            let out_slice = out.data.as_mut_slice();
+            let self_slice = self.data.as_slice();
+            let b_slice = b.data.as_slice();
     
             for i in 0..self.rows {
                 for j in 0..cols_b {
                     let mut s = T::from(0);
                     for k in 0..cols_a {
-                        s += self.data[i * cols_a + k] * b.data[k * cols_b + j];
+                        s += self_slice[i * cols_a + k] * b_slice[k * cols_b + j];
                     }
-                    out.data[i * cols_b + j] = s;
+                    out_slice[i * cols_b + j] = s;
                 }
             }
             out
@@ -71,94 +75,96 @@ where
 
     pub fn t(&self) -> Array<T> {
         let mut temp: Array<T> = Array::empty(self.cols, self.rows);
+
+        let temp_slice = temp.data.as_mut_slice();
+        let self_slice = self.data.as_slice();
+
         for i in 0..self.rows {
             for j in 0..self.cols {
-                temp.data[j * self.rows + i] = self.data[i * self.cols + j];
+                temp_slice[j * self.rows + i] = self_slice[i * self.cols + j];
             }
         }
         temp
     }
 
     pub fn inc(&mut self, rhs: T) -> &Self {
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                self.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs;
-            }
+        let self_slice = self.data.as_mut_slice();
+        for i in 0..self.rows * self.cols {
+            self_slice[i] = self_slice[i] + rhs;
         }
         self
     }
 
     pub fn add(&mut self, rhs: &Array<T>) -> &Self {
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                self.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs.data[i * self.cols + j];
-            }
+        let self_slice = self.data.as_mut_slice();
+        let rhs_slice = rhs.data.as_slice();
+        for i in 0..self.rows * self.cols {
+            self_slice[i] = self_slice[i] + rhs_slice[i];
         }
         self
     }
 
     pub fn mul(&mut self, rhs: T) -> &Self {
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                self.data[i * self.cols + j] = self.data[i * self.cols + j] * rhs;
-            }
+        let self_slice = self.data.as_mut_slice();
+        for i in 0..self.rows * self.cols {
+            self_slice[i] = self_slice[i] * rhs;
         }
         self
     }
 }
 
-impl<T: Add<Output = T>> Add for Array<T>
-where
-    T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T>,
-    Standard: Distribution<T>,
-{
-    type Output = Self;
+// impl<T: Add<Output = T>> Add for Array<T>
+// where
+//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T>,
+//     Standard: Distribution<T>,
+// {
+//     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.rows, rhs.rows);
-        assert_eq!(self.cols, rhs.cols);
-        let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs.data[i * self.cols + j];
-            }
-        }
-        temp
-    }
-}
+//     fn add(self, rhs: Self) -> Self::Output {
+//         assert_eq!(self.rows, rhs.rows);
+//         assert_eq!(self.cols, rhs.cols);
+//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
+//         for i in 0..self.rows {
+//             for j in 0..self.cols {
+//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs.data[i * self.cols + j];
+//             }
+//         }
+//         temp
+//     }
+// }
 
-impl<T> Add<T> for Array<T>
-where
-    T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
-    Standard: Distribution<T>,
-{
-    type Output = Self;
+// impl<T> Add<T> for Array<T>
+// where
+//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
+//     Standard: Distribution<T>,
+// {
+//     type Output = Self;
 
-    fn add(self, rhs: T) -> Self::Output {
-        let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs;
-            }
-        }
-        temp
-    }
-}
+//     fn add(self, rhs: T) -> Self::Output {
+//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
+//         for i in 0..self.rows {
+//             for j in 0..self.cols {
+//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs;
+//             }
+//         }
+//         temp
+//     }
+// }
 
-impl<T> Mul<T> for Array<T>
-where
-    T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
-    Standard: Distribution<T>,
-{
-    type Output = Self;
+// impl<T> Mul<T> for Array<T>
+// where
+//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
+//     Standard: Distribution<T>,
+// {
+//     type Output = Self;
 
-    fn mul(self, rhs: T) -> Self::Output {
-        let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                temp.data[i * self.cols + j] = self.data[i * self.cols + j] * rhs;
-            }
-        }
-        temp
-    }
-}
+//     fn mul(self, rhs: T) -> Self::Output {
+//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
+//         for i in 0..self.rows {
+//             for j in 0..self.cols {
+//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] * rhs;
+//             }
+//         }
+//         temp
+//     }
+// }
