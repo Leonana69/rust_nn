@@ -88,10 +88,19 @@ where
         self
     }
 
-    pub fn add(&mut self, rhs: Array<T>) -> &Self {
+    pub fn add(&mut self, rhs: &Array<T>) -> &Self {
         for i in 0..self.rows {
             for j in 0..self.cols {
                 self.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs.data[i * self.cols + j];
+            }
+        }
+        self
+    }
+
+    pub fn mul(&mut self, rhs: T) -> &Self {
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                self.data[i * self.cols + j] = self.data[i * self.cols + j] * rhs;
             }
         }
         self

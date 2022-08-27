@@ -16,7 +16,8 @@ impl Operator for Sigmoid {
         1.0 / (1.0 + E.powf(-x))
     }
     fn derivative(x: f64) -> f64 {
-        x * (1.0 - x)
+        let sx = Self::activation(x);
+        sx * (1.0 - sx)
     }
 }
 

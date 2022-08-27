@@ -37,9 +37,6 @@ fn main() {
     let test_image_data = MnistData::new("./dataset/t10k-images.idx3-ubyte").unwrap();
     let test_label_data = MnistData::new("./dataset/t10k-labels.idx1-ubyte").unwrap();
 
-        println!("{:?}", &test_label_data.data[0..4]);
-        return;
-
     println!("Loaded image [number, width, height]: {:?}", &train_image_data.sizes);
     println!("Loaded label [number]: {:?}", &train_label_data.sizes);
 
@@ -52,10 +49,11 @@ fn main() {
     model.add(DenseLayer::new(50, 10));
     model.add(TanHLayer::new());
 
-    model.train(&train_image_data.data[0..512].to_vec(), &train_label_data.data[0..512].to_vec(), 4, 1, 0.1);
+    model.train(&train_image_data.data[0..256].to_vec(), &train_label_data.data[0..256].to_vec(), 5, 1, 0.1);
     
     let res = model.predict(&test_image_data.data[0..4].to_vec());
-    for i in res.iter() {
-        println!("{:?}", i);
+    for i in 0..res.len() {
+        println!("{:?}", &res[i]);
+        println!("{:?}", &test_label_data.data[i]);
     }
 }

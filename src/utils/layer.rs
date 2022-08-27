@@ -2,7 +2,8 @@ use super::{ops::{ Sigmoid, ReLU, Operator, calculate, TanH }, shape::Array, los
 use crate::utils::loss::Loss;
 pub trait Layer {
     fn forward_prop(&mut self, input: &Vec<f64>) -> Vec<f64>;
-    fn backward_prop(&mut self, error: &Vec<f64>, learning_rate: f64) -> Vec<f64>;
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>);
+    fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {}
 }
 
 pub struct SigmoidLayer {
@@ -24,13 +25,13 @@ impl Layer for SigmoidLayer {
         calculate(&input, Sigmoid::activation)
     }
 
-    fn backward_prop(&mut self, error: &Vec<f64>, _learning_rate: f64) -> Vec<f64> {
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
         let mut vec = calculate(&self.input.data, Sigmoid::derivative);
         for i in 0..error.len() {
             vec[i] = vec[i] * error[i];
         }
-        vec
-    }
+        (vec, None, None)
+    }    
 }
 
 pub struct ReLULayer {
@@ -52,12 +53,12 @@ impl Layer for ReLULayer {
         calculate(&input, ReLU::activation)
     }
 
-    fn backward_prop(&mut self, error: &Vec<f64>, _learning_rate: f64) -> Vec<f64> {
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
         let mut vec = calculate(&self.input.data, ReLU::derivative);
         for i in 0..error.len() {
             vec[i] = vec[i] * error[i];
         }
-        vec
+        (vec, None, None)
     }
 }
 
@@ -80,12 +81,12 @@ impl Layer for TanHLayer {
         calculate(&input, TanH::activation)
     }
 
-    fn backward_prop(&mut self, error: &Vec<f64>, _learning_rate: f64) -> Vec<f64> {
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
         let mut vec = calculate(&self.input.data, TanH::derivative);
         for i in 0..error.len() {
             vec[i] = vec[i] * error[i];
         }
-        vec
+        (vec, None, None)
     }
 }
 
@@ -123,7 +124,7 @@ impl Layer for DenseLayer {
         vec
     }
 
-    fn backward_prop(&mut self, error: &Vec<f64>, learn_rate: f64) -> Vec<f64> {
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
         let error_array = Array {
             rows: 1,
             cols: self.weights.cols,
@@ -133,9 +134,13 @@ impl Layer for DenseLayer {
         let input_error = error_array.dot(&self.weights.t());
         let weights_error = self.input.dot(&error_array);
 
-        self.weights.add(weights_error * -learn_rate);
-        self.bias.add(error_array * -learn_rate);
+        // self.weights.add(weights_error * -learn_rate);
+        // self.bias.add(error_array * -learn_rate);
+        (input_error.to_vec(), Some(weights_error), Some(error_array))
+    }
 
-        input_error.to_vec()
+    fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {
+        self.weights.add(delta_weights);
+        self.bias.add(delta_bias);
     }
 }

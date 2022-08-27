@@ -1,4 +1,4 @@
-use crate::utils::loss::{MSE, Loss};
+use crate::utils::{loss::{MSE, Loss}, shape::Array};
 
 use super::layer::Layer;
 
@@ -54,6 +54,9 @@ impl Sequential  {
                 }
 
                 if bs > 0 {
+                    let mut vec_delta_weights: Vec<Option<Array<f64>>> = Vec::default();
+                    let mut vec_delta_bias: Vec<Option<Array<f64>>> = Vec::default();
+                    let layer_len = self.layers.len();
                     for b in 0..bs {
                         let mut temp_input = &input[i * batch_size + b];
                         let mut temp_output: Vec<f64>;
@@ -63,37 +66,48 @@ impl Sequential  {
                             temp_input = &temp_output;
                         }
                         err += MSE::calculate(&truth[i], temp_input);
-                        error_sum = error_sum.iter().zip(temp_input.iter()).map(|(&e, &o)| e + o).collect();
+                        // error_sum = error_sum.iter().zip(temp_input.iter()).map(|(&e, &o)| e + o).collect();
+                        
+                        // backward propagation
+                        let loss = MSE::derivative(&truth[i], temp_input);
+                        let mut back_input = &loss;
+                        let mut back_output: Vec<f64>;
+                        let mut delta_weights: Option<Array<f64>>;
+                        let mut delta_bias: Option<Array<f64>>;
+
+                        
+                        for l in 0..layer_len {
+                            (back_output, delta_weights, delta_bias) = self.layers[layer_len - 1 - l].backward_prop(back_input);
+
+                            if b == 0 {
+                                vec_delta_weights.push(delta_weights);
+                                vec_delta_bias.push(delta_bias);
+                            } else {
+                                if let Some(mut w) = delta_weights {
+                                    w.add(vec_delta_weights[l].as_ref().unwrap());
+                                    vec_delta_weights[l] = Some(w);
+                                }
+                                if let Some(mut b) = delta_bias {
+                                    b.add(vec_delta_bias[l].as_ref().unwrap());
+                                    vec_delta_bias[l] = Some(b);
+                                }
+                            }
+                            
+                            back_input = &back_output;
+                        }
                     }
-                
-                    // backward propagation
-                    let loss = MSE::derivative(&truth[i], &error_sum);
-                    let mut back_input = &loss;
-                    let mut back_output: Vec<f64>;
-                    for l in self.layers.iter_mut().rev() {
-                        back_output = l.backward_prop(back_input, learning_rate);
-                        back_input = &back_output;
+
+                    for l in 0..layer_len {
+                        // println!("{:?}", vec_delta_bias[l]);
+                        if let Some(_) = &vec_delta_weights[l] {
+                            self.layers[layer_len - 1 - l].update_parameters(
+                                vec_delta_weights[l].as_mut().unwrap().mul(-learning_rate),
+                                vec_delta_bias[l].as_mut().unwrap().mul(-learning_rate)
+                            );
+                        }
                     }
                 }
             }
-
-            // for i in 0..sample_len {
-            //     let mut temp_input = &input[i];
-            //     let mut temp_out: Vec<f64>;
-            //     for l in self.layers.iter_mut() {
-            //         temp_out = l.forward_prop(temp_input);
-            //         temp_input = &temp_out;
-            //     }
-            //     err += MSE::calculate(&truth[i], temp_input);
-
-            //     // backward propagation
-            //     let error = MSE::derivative(&truth[i], temp_input);
-            //     temp_input = &error;
-            //     for l in self.layers.iter_mut().rev() {
-            //         temp_out = l.backward_prop(temp_input, learning_rate);
-            //         temp_input = &temp_out;
-            //     }
-            // }
 
             err /= sample_len as f64;
             println!("epoch {}/{}, error: {:.6}", epoch + 1, epoches, err);
