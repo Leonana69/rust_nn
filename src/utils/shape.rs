@@ -16,22 +16,21 @@ impl Array<f64> {
     }
 }
 
-impl Array<i32> {
-    // todo{}
+impl Array<f32> {
     pub fn random(rows: usize, cols: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let data = (0..rows * cols).map(|_| rng.gen::<i32>() - 0).collect();
+        let data = (0..rows * cols).map(|_| rng.gen::<f32>() - 0.5).collect();
         Array { rows, cols, data }
     }
 }
 
 impl<T> Array<T>
 where
-    T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
+    T: Copy + Clone + From<f32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
     Standard: Distribution<T>,
 {
     pub fn empty(rows: usize, cols: usize) -> Self {
-        Array { rows, cols, data: vec![T::from(0); rows * cols] }
+        Array { rows, cols, data: vec![T::from(0.0); rows * cols] }
     }
 
     // pub fn random(rows: usize, cols: usize) -> Self {
@@ -51,18 +50,14 @@ where
             let mut out: Array<T> = Array::empty(self.rows, b.cols);
             let cols_a = self.cols;
             let cols_b = b.cols;
-
-            let out_slice = out.data.as_mut_slice();
-            let self_slice = self.data.as_slice();
-            let b_slice = b.data.as_slice();
     
             for i in 0..self.rows {
                 for j in 0..cols_b {
-                    let mut s = T::from(0);
+                    let mut s = T::from(0.0);
                     for k in 0..cols_a {
-                        s += self_slice[i * cols_a + k] * b_slice[k * cols_b + j];
+                        s += self.data[i * cols_a + k] * b.data[k * cols_b + j];
                     }
-                    out_slice[i * cols_b + j] = s;
+                    out.data[i * cols_b + j] = s;
                 }
             }
             out
@@ -76,38 +71,31 @@ where
     pub fn t(&self) -> Array<T> {
         let mut temp: Array<T> = Array::empty(self.cols, self.rows);
 
-        let temp_slice = temp.data.as_mut_slice();
-        let self_slice = self.data.as_slice();
-
         for i in 0..self.rows {
             for j in 0..self.cols {
-                temp_slice[j * self.rows + i] = self_slice[i * self.cols + j];
+                temp.data[j * self.rows + i] = self.data[i * self.cols + j];
             }
         }
         temp
     }
 
     pub fn inc(&mut self, rhs: T) -> &Self {
-        let self_slice = self.data.as_mut_slice();
         for i in 0..self.rows * self.cols {
-            self_slice[i] = self_slice[i] + rhs;
+            self.data[i] = self.data[i] + rhs;
         }
         self
     }
 
     pub fn add(&mut self, rhs: &Array<T>) -> &Self {
-        let self_slice = self.data.as_mut_slice();
-        let rhs_slice = rhs.data.as_slice();
         for i in 0..self.rows * self.cols {
-            self_slice[i] = self_slice[i] + rhs_slice[i];
+            self.data[i] = self.data[i] + rhs.data[i];
         }
         self
     }
 
     pub fn mul(&mut self, rhs: T) -> &Self {
-        let self_slice = self.data.as_mut_slice();
         for i in 0..self.rows * self.cols {
-            self_slice[i] = self_slice[i] * rhs;
+            self.data[i] = self.data[i] * rhs;
         }
         self
     }

@@ -5,7 +5,6 @@ use super::layer::Layer;
 #[derive(Default)]
 pub struct Sequential  {
     pub layers: Vec<Box<dyn Layer>>,
-    pub learn_rate: f64,
 }
 
 impl Sequential  {
