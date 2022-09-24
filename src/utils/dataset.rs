@@ -6,11 +6,11 @@ pub struct MnistData {
 }
 
 impl MnistData {
-    pub fn new(fileName: &str) -> Result<MnistData, std::io::Error> {
-        let metadata = fs::metadata(fileName).expect("Unable to read metadata");
+    pub fn new(file_name: &str) -> Result<MnistData, std::io::Error> {
+        let metadata = fs::metadata(file_name).expect("Unable to read metadata");
 
         let mut buffer = vec![0; metadata.len() as usize];
-        let mut file = File::open(fileName).expect("Unable to open file.");
+        let mut file = File::open(file_name).expect("Unable to open file.");
         file.read(&mut buffer).expect("Buffer overflow.");
 
         let magic_number = i32::from_be_bytes(buffer[0..4].try_into().unwrap());
