@@ -1,7 +1,7 @@
 mod utils;
 
-use utils::{layer::{DenseLayer, TanHLayer, ReLULayer, SigmoidLayer}, model::Sequential, shape::Array};
-use utils::{ dataset::MnistData };
+use utils::{layer::{DenseLayer, SigmoidLayer}, model::Sequential};
+use utils::{dataset::MnistData};
 use std::time::{Instant};
 
 fn main() {

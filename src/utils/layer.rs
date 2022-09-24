@@ -1,9 +1,9 @@
-use super::{ops::{ Sigmoid, ReLU, Operator, calculate, TanH }, shape::Array, loss::MSE};
+use super::{ops::{ Sigmoid, ReLU, Operator, calculate, TanH, ReLU6 }, shape::Array, loss::MSE};
 use crate::utils::loss::Loss;
 pub trait Layer {
     fn forward_prop(&mut self, input: &Vec<f64>) -> Vec<f64>;
     fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>);
-    fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {}
+    fn update_parameters(&mut self, _delta_weights: &Array<f64>, _delta_bias: &Array<f64>) {}
 }
 
 pub struct SigmoidLayer {
@@ -55,6 +55,34 @@ impl Layer for ReLULayer {
 
     fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
         let mut vec = calculate(&self.input.data, ReLU::derivative);
+        for i in 0..error.len() {
+            vec[i] = vec[i] * error[i];
+        }
+        (vec, None, None)
+    }
+}
+
+pub struct ReLU6Layer {
+    pub input: Array<f64>,
+}
+
+impl ReLU6Layer {
+    pub fn new() -> Self {
+        ReLU6Layer {
+            input: Array::empty(0, 0),
+        }
+    }
+}
+
+impl Layer for ReLU6Layer {
+    fn forward_prop(&mut self, input: &Vec<f64>) -> Vec<f64> {
+        self.input = Array::empty(input.len(), 1);
+        self.input.data = input.to_vec();
+        calculate(&input, ReLU6::activation)
+    }
+
+    fn backward_prop(&mut self, error: &Vec<f64>) -> (Vec<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+        let mut vec = calculate(&self.input.data, ReLU6::derivative);
         for i in 0..error.len() {
             vec[i] = vec[i] * error[i];
         }

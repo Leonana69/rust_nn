@@ -9,6 +9,9 @@ pub struct Sigmoid;
 #[derive(Default)]
 pub struct ReLU;
 
+#[derive(Default)]
+pub struct ReLU6;
+
 pub struct TanH;
 
 impl Operator for Sigmoid {
@@ -27,6 +30,19 @@ impl Operator for ReLU {
     }
     fn derivative(x: f64) -> f64 {
         if x > 0.0 {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
+
+impl Operator for ReLU6 {
+    fn activation(x: f64) -> f64 {
+        x.max(0.0).min(6.0)
+    }
+    fn derivative(x: f64) -> f64 {
+        if x > 0.0 && x < 6.0 {
             1.0
         } else {
             0.0
