@@ -26,7 +26,7 @@ fn main() {
     model.add(SigmoidLayer::new());
 
     let timer = Instant::now();
-    model.train(&train_image_data.data[0..2048].to_vec(), &train_label_data.data[0..2048].to_vec(), 50, 1, 0.1);
+    model.train(&train_image_data.data[0..2].to_vec(), &train_label_data.data[0..2].to_vec(), 1, 1, 0.1);
     println!("Training time: {} s", timer.elapsed().as_secs());
 
     let res = model.predict(&test_image_data.data[0..4].to_vec());

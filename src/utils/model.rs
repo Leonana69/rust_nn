@@ -82,14 +82,10 @@ impl Sequential  {
                                 if let Some(w) = delta_weights {
                                     let vl = vec_delta_weights[l].as_mut().unwrap();
                                     vl.add(&w);
-                                    // w.add(vec_delta_weights[l].as_ref().unwrap());
-                                    // vec_delta_weights[l] = Some(w);
                                 }
                                 if let Some(b) = delta_bias {
                                     let vl = vec_delta_bias[l].as_mut().unwrap();
                                     vl.add(&b);
-                                    // b.add(vec_delta_bias[l].as_ref().unwrap());
-                                    // vec_delta_bias[l] = Some(b);
                                 }
                             }
                             
@@ -98,7 +94,7 @@ impl Sequential  {
                     }
 
                     for l in 0..layer_len {
-                        // println!("{:?}", vec_delta_bias[l]);
+                        println!("{:?}", vec_delta_weights[l]);
                         if let Some(_) = &vec_delta_weights[l] {
                             self.layers[layer_len - 1 - l].update_parameters(
                                 vec_delta_weights[l].as_mut().unwrap().mul(-learning_rate),
