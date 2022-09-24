@@ -1,13 +1,11 @@
 mod utils;
 
-use utils::{layer::{DenseLayer, TanHLayer}, model::Sequential, shape::Array};
-
+use utils::{layer::{DenseLayer, TanHLayer, ReLULayer, SigmoidLayer}, model::Sequential, shape::Array};
 use utils::{ dataset::MnistData };
 use std::time::{Instant};
 
-use crate::utils::layer::{ReLULayer, SigmoidLayer};
-
 fn main() {
+    // load Mnist training and test dataset
     println!("Loading data...");
     let train_image_data = MnistData::new("./dataset/train-images.idx3-ubyte").unwrap();
     let train_label_data = MnistData::new("./dataset/train-labels.idx1-ubyte").unwrap();
@@ -29,7 +27,7 @@ fn main() {
 
     let timer = Instant::now();
     model.train(&train_image_data.data[0..2048].to_vec(), &train_label_data.data[0..2048].to_vec(), 50, 1, 0.1);
-    println!("Training time: {} ms", timer.elapsed().as_millis());
+    println!("Training time: {} s", timer.elapsed().as_secs());
 
     let res = model.predict(&test_image_data.data[0..4].to_vec());
     for i in 0..res.len() {

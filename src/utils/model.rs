@@ -1,5 +1,4 @@
 use crate::utils::{loss::{MSE, Loss}, shape::Array};
-
 use super::layer::Layer;
 
 #[derive(Default)]
@@ -45,7 +44,6 @@ impl Sequential  {
             let iters: usize = sample_len / batch_size;
 
             for i in 0..iters + 1 {
-                let mut error_sum = vec![0.0; truth[0].len()];
                 let mut bs = batch_size;
                 // for leftover
                 if i == iters {
@@ -57,18 +55,17 @@ impl Sequential  {
                     let mut vec_delta_bias: Vec<Option<Array<f64>>> = Vec::default();
                     let layer_len = self.layers.len();
                     for b in 0..bs {
-                        let mut temp_input = &input[i * batch_size + b];
-                        let mut temp_output: Vec<f64>;
+                        let mut layer_input = &input[i * batch_size + b];
+                        let mut layer_output: Vec<f64> = Vec::new();
                         
                         for l in self.layers.iter_mut() {
-                            temp_output = l.forward_prop(temp_input);
-                            temp_input = &temp_output;
+                            layer_output = l.forward_prop(layer_input);
+                            layer_input = &layer_output;
                         }
-                        err += MSE::calculate(&truth[i], temp_input);
-                        // error_sum = error_sum.iter().zip(temp_input.iter()).map(|(&e, &o)| e + o).collect();
+                        err += MSE::calculate(&truth[i], &layer_output);
                         
                         // backward propagation
-                        let loss = MSE::derivative(&truth[i], temp_input);
+                        let loss = MSE::derivative(&truth[i], &layer_output);
                         let mut back_input = &loss;
                         let mut back_output: Vec<f64>;
                         let mut delta_weights: Option<Array<f64>>;
@@ -82,13 +79,17 @@ impl Sequential  {
                                 vec_delta_weights.push(delta_weights);
                                 vec_delta_bias.push(delta_bias);
                             } else {
-                                if let Some(mut w) = delta_weights {
-                                    w.add(vec_delta_weights[l].as_ref().unwrap());
-                                    vec_delta_weights[l] = Some(w);
+                                if let Some(w) = delta_weights {
+                                    let vl = vec_delta_weights[l].as_mut().unwrap();
+                                    vl.add(&w);
+                                    // w.add(vec_delta_weights[l].as_ref().unwrap());
+                                    // vec_delta_weights[l] = Some(w);
                                 }
-                                if let Some(mut b) = delta_bias {
-                                    b.add(vec_delta_bias[l].as_ref().unwrap());
-                                    vec_delta_bias[l] = Some(b);
+                                if let Some(b) = delta_bias {
+                                    let vl = vec_delta_bias[l].as_mut().unwrap();
+                                    vl.add(&b);
+                                    // b.add(vec_delta_bias[l].as_ref().unwrap());
+                                    // vec_delta_bias[l] = Some(b);
                                 }
                             }
                             
