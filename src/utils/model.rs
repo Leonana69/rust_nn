@@ -94,7 +94,6 @@ impl Sequential  {
                     }
 
                     for l in 0..layer_len {
-                        println!("{:?}", vec_delta_weights[l]);
                         if let Some(_) = &vec_delta_weights[l] {
                             self.layers[layer_len - 1 - l].update_parameters(
                                 vec_delta_weights[l].as_mut().unwrap().mul(-learning_rate),
