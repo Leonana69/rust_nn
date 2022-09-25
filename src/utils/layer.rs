@@ -5,125 +5,209 @@ use crate::utils::loss::Loss;
 pub trait Layer {
     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64>;
     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>);
+    fn config_shape(&mut self, prev_output_shape: &[usize]);
     fn update_parameters(&mut self, _delta_weights: &Array<f64>, _delta_bias: &Array<f64>) {}
     fn set_parameters(&mut self, _weights: &Array<f64>, _bias: &Array<f64>) {}
 }
 
-pub struct SigmoidLayer {
-    pub input: Array<f64>,
-}
-
-impl SigmoidLayer {
-    pub fn new() -> Self {
-        SigmoidLayer {
-            input: Array::empty(),
+macro_rules! new_activation_layer {
+    ($struct:ident, $type:ident) => {
+        pub struct $struct {
+            pub input: Array<f64>,
+            pub input_shape: Box<[usize]>,
+            pub output_shape: Box<[usize]>,
         }
-    }
-}
 
-impl Layer for SigmoidLayer {
-    fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        self.input = input.clone();
-        calculate(input, Sigmoid::activation)
-    }
-
-    fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-        let mut input = Array::empty();
-        input = replace(&mut self.input, input);
-        let mut deriv = calculate(input, Sigmoid::derivative);
-        for i in 0..error.sub_size[0] {
-            deriv.data[i] = deriv.data[i] * error.data[i];
+        impl $struct {
+            pub fn new() -> Self {
+                $struct {
+                    input: Array::empty(),
+                    input_shape: Box::default(),
+                    output_shape: Box::default(),
+                }
+            }
         }
-        (deriv, None, None)
-    }
-}
 
-pub struct ReLULayer {
-    pub input: Array<f64>,
-}
-
-impl ReLULayer {
-    pub fn new() -> Self {
-        ReLULayer {
-            input: Array::empty(),
+        impl Layer for $struct {
+            fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+                self.input = input.clone();
+                calculate(input, $type::activation)
+            }
+        
+            fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+                let mut input = Array::empty();
+                input = replace(&mut self.input, input);
+                let mut deriv = calculate(input, $type::derivative);
+                for i in 0..error.sub_size[0] {
+                    deriv.data[i] = deriv.data[i] * error.data[i];
+                }
+                (deriv, None, None)
+            }
+        
+            fn config_shape(&mut self, prev_output_shape: &[usize]) {
+                self.input_shape = prev_output_shape.into();
+                self.output_shape = prev_output_shape.into();
+            }
         }
-    }
+    };
 }
 
-impl Layer for ReLULayer {
-    fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        self.input = input.clone();
-        calculate(input, ReLU::activation)
-    }
+new_activation_layer!(SigmoidLayer, Sigmoid);
+new_activation_layer!(ReLULayer, ReLU);
+new_activation_layer!(ReLU6Layer, ReLU6);
+new_activation_layer!(TanHLayer, TanH);
 
-    fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-        let mut input = Array::empty();
-        input = replace(&mut self.input, input);
-        let mut deriv = calculate(input, ReLU::derivative);
-        for i in 0..error.sub_size[0] {
-            deriv.data[i] = deriv.data[i] * error.data[i];
-        }
-        (deriv, None, None)
-    }
-}
+// pub struct SigmoidLayer {
+//     pub input: Array<f64>,
+//     pub input_shape: Box<[usize]>,
+//     pub output_shape: Box<[usize]>,
+// }
 
-pub struct ReLU6Layer {
-    pub input: Array<f64>,
-}
+// impl SigmoidLayer {
+//     pub fn new() -> Self {
+//         SigmoidLayer {
+//             input: Array::empty(),
+//             input_shape: Box::default(),
+//             output_shape: Box::default(),
+//         }
+//     }
+// }
 
-impl ReLU6Layer {
-    pub fn new() -> Self {
-        ReLU6Layer {
-            input: Array::empty(),
-        }
-    }
-}
+// impl Layer for SigmoidLayer {
+//     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+//         self.input = input.clone();
+//         calculate(input, Sigmoid::activation)
+//     }
 
-impl Layer for ReLU6Layer {
-    fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        self.input = input.clone();
-        calculate(input, ReLU6::activation)
-    }
+//     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+//         let mut input = Array::empty();
+//         input = replace(&mut self.input, input);
+//         let mut deriv = calculate(input, Sigmoid::derivative);
+//         for i in 0..error.sub_size[0] {
+//             deriv.data[i] = deriv.data[i] * error.data[i];
+//         }
+//         (deriv, None, None)
+//     }
 
-    fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-        let mut input = Array::empty();
-        input = replace(&mut self.input, input);
-        let mut deriv = calculate(input, ReLU6::derivative);
-        for i in 0..error.sub_size[0] {
-            deriv.data[i] = deriv.data[i] * error.data[i];
-        }
-        (deriv, None, None)
-    }
-}
+//     fn config_shape(&mut self, prev_output_shape: &[usize]) {
+//         self.input_shape = prev_output_shape.into();
+//         self.output_shape = prev_output_shape.into();
+//     }
+// }
 
-pub struct TanHLayer {
-    pub input: Array<f64>,
-}
+// pub struct ReLULayer {
+//     pub input: Array<f64>,
+//     pub input_shape: Box<[usize]>,
+//     pub output_shape: Box<[usize]>,
+// }
 
-impl TanHLayer {
-    pub fn new() -> Self {
-        TanHLayer {
-            input: Array::empty(),
-        }
-    }
-}
+// impl ReLULayer {
+//     pub fn new() -> Self {
+//         ReLULayer {
+//             input: Array::empty(),
+//             input_shape: Box::default(),
+//             output_shape: Box::default(),
+//         }
+//     }
+// }
 
-impl Layer for TanHLayer {
-    fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        self.input = input.clone();
-        calculate(input, TanH::activation)
-    }
+// impl Layer for ReLULayer {
+//     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+//         self.input = input.clone();
+//         calculate(input, ReLU::activation)
+//     }
 
-    fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-        let mut input = Array::empty();
-        input = replace(&mut self.input, input);
-        let mut deriv = calculate(input, TanH::derivative);
-        for i in 0..error.sub_size[0] {
-            deriv.data[i] = deriv.data[i] * error.data[i];
-        }
-        (deriv, None, None)
-    }
-}
+//     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+//         let mut input = Array::empty();
+//         input = replace(&mut self.input, input);
+//         let mut deriv = calculate(input, ReLU::derivative);
+//         for i in 0..error.sub_size[0] {
+//             deriv.data[i] = deriv.data[i] * error.data[i];
+//         }
+//         (deriv, None, None)
+//     }
+
+//     fn config_shape(&mut self, prev_output_shape: &[usize]) {
+//         self.input_shape = prev_output_shape.into();
+//         self.output_shape = prev_output_shape.into();
+//     }
+// }
+
+// pub struct ReLU6Layer {
+//     pub input: Array<f64>,
+//     pub input_shape: Box<[usize]>,
+//     pub output_shape: Box<[usize]>,
+// }
+
+// impl ReLU6Layer {
+//     pub fn new() -> Self {
+//         ReLU6Layer {
+//             input: Array::empty(),
+//             input_shape: Box::default(),
+//             output_shape: Box::default(),
+//         }
+//     }
+// }
+
+// impl Layer for ReLU6Layer {
+//     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+//         self.input = input.clone();
+//         calculate(input, ReLU6::activation)
+//     }
+
+//     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+//         let mut input = Array::empty();
+//         input = replace(&mut self.input, input);
+//         let mut deriv = calculate(input, ReLU6::derivative);
+//         for i in 0..error.sub_size[0] {
+//             deriv.data[i] = deriv.data[i] * error.data[i];
+//         }
+//         (deriv, None, None)
+//     }
+
+//     fn config_shape(&mut self, prev_output_shape: &[usize]) {
+//         self.input_shape = prev_output_shape.into();
+//         self.output_shape = prev_output_shape.into();
+//     }
+// }
+
+// pub struct TanHLayer {
+//     pub input: Array<f64>,
+//     pub input_shape: Box<[usize]>,
+//     pub output_shape: Box<[usize]>,
+// }
+
+// impl TanHLayer {
+//     pub fn new() -> Self {
+//         TanHLayer {
+//             input: Array::empty(),
+//             input_shape: Box::default(),
+//             output_shape: Box::default(),
+//         }
+//     }
+// }
+
+// impl Layer for TanHLayer {
+//     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+//         self.input = input.clone();
+//         calculate(input, TanH::activation)
+//     }
+
+//     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+//         let mut input = Array::empty();
+//         input = replace(&mut self.input, input);
+//         let mut deriv = calculate(input, TanH::derivative);
+//         for i in 0..error.sub_size[0] {
+//             deriv.data[i] = deriv.data[i] * error.data[i];
+//         }
+//         (deriv, None, None)
+//     }
+
+//     fn config_shape(&mut self, prev_output_shape: &[usize]) {
+//         self.input_shape = prev_output_shape.into();
+//         self.output_shape = prev_output_shape.into();
+//     }
+// }
 
 pub struct DenseLayer {
     pub input: Array<f64>,
@@ -159,6 +243,10 @@ impl Layer for DenseLayer {
     fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {
         self.weights.add_m(delta_weights);
         self.bias.add_m(delta_bias);
+    }
+
+    fn config_shape(&mut self, prev_output_shape: &[usize]) {
+        todo!()
     }
 }
 
@@ -225,33 +313,8 @@ impl Layer for Conv2DLayer {
         self.weights = weights.clone();
         self.bias = bias.clone();
     }
+
+    fn config_shape(&mut self, prev_output_shape: &[usize]) {
+        todo!()
+    }
 }
-
-// fn Conv2D(w: Array<f64>, b: Array<f64>, input: Array<f64>) -> Array<f64> {
-//     let o_rows = input.shape[0] - w.shape[0] + 1;
-//     let o_cols = input.shape[1] - w.shape[1] + 1;
-//     let o_ch = b.shape[0];
-//     let i_ch = input.shape[2];
-
-//     let k_rows = w.shape[0];
-//     let k_cols = w.shape[1];
-
-//     let mut res: Array<f64> = Array::zeros(&[o_rows, o_cols, o_ch]);
-
-//     for i in 0..o_rows {
-//         for j in 0..o_cols {
-//             for k in 0..o_ch {
-//                 for ik in 0..i_ch {
-//                     for ki in 0..k_rows {
-//                         for kj in 0..k_cols {
-//                             res[&[i, j, k]] += w[&[ki, kj, ik, k]] * input[&[i + ki, j + kj, ik]];
-//                         }
-//                     }
-//                 }
-//                 res[&[i, j, k]] += b[&[k, 0]];
-//             }
-//         }
-//     }
-
-//     res
-// }
