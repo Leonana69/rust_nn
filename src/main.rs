@@ -31,16 +31,27 @@ fn test_face() {
         weights.push(s.parse::<f64>().unwrap());
     }
     let weights = Array::with(&[3, 3, 3, 32], &weights);
+
+    // load image
+    let content = fs::read("./resource/test_image.txt").unwrap();
+    let content = std::str::from_utf8(&content).unwrap();
+    let sp = content.split(",");
+    let mut input_img = Vec::<f64>::new();
+    for s in sp {
+        input_img.push(s.parse::<f64>().unwrap());
+    }
+    let input_img = Array::with(&[64, 64, 3], &input_img);
+    println!("{}", input_img.data.len());
     
 
     let mut model = Sequential::new();
     model.add(InputLayer::new(&[64, 64, 3]));
     model.add(Conv2DLayer::new(32, 3));
-    model.add(SigmoidLayer::new());
     model.compile();
 
-
     model.layers[1].set_parameters(weights, bias);
+
+    // model.predict();
 
 }
 
@@ -69,10 +80,10 @@ fn test_mnist() {
 
     model.compile();
     let timer = Instant::now();
-    model.train(&train_image_data.data[0..2048].to_vec(), &train_label_data.data[0..2048].to_vec(), &[1, 784], 50, 1, 0.2);
+    model.train(&train_image_data.data[0..2048].to_vec(), &train_label_data.data[0..2048].to_vec(), 50, 1, 0.2);
     println!("Training time: {} s", timer.elapsed().as_secs());
 
-    let res = model.predict(&test_image_data.data[0..4], &[1, 784]);
+    let res = model.predict(&test_image_data.data[0..4]);
     for i in 0..res.len() {
         println!("{:?}", &res[i]);
         println!("{:?}", &test_label_data.data[i]);

@@ -26,11 +26,11 @@ impl Sequential  {
         }
     }
 
-    pub fn predict(&mut self, input: &[Vec<f64>], shape: &[usize]) -> Vec<Vec<f64>> {
+    pub fn predict(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let len = input.len();
         let mut output: Vec<Vec<f64>> = Vec::default();
         for i in 0..len {
-            let mut temp_input = Array::with(shape, &input[i]);
+            let mut temp_input = Array::with(self.layers[0].get_output_shape(), &input[i]);
             let mut temp_out: Array<f64>;
             for l in self.layers.iter_mut() {
                 temp_out = l.forward_prop(temp_input);
@@ -41,7 +41,7 @@ impl Sequential  {
         output
     }
 
-    pub fn train(&mut self, input: &[Vec<f64>], truth: &[Vec<f64>], intpu_shape: &[usize], epoches: usize, batch_size: usize, learning_rate: f64) {
+    pub fn train(&mut self, input: &[Vec<f64>], truth: &[Vec<f64>], epoches: usize, batch_size: usize, learning_rate: f64) {
         let sample_len = input.len();
 
         assert!(sample_len > 0 && truth.len() == sample_len && batch_size > 0 && learning_rate > 0.0);
@@ -62,7 +62,7 @@ impl Sequential  {
                     let mut vec_delta_bias: Vec<Option<Array<f64>>> = Vec::default();
                     let layer_len = self.layers.len();
                     for b in 0..bs {
-                        let mut layer_input = Array::with(intpu_shape, &input[i]);
+                        let mut layer_input = Array::with(self.layers[0].get_output_shape(), &input[i]);
                         let mut layer_output: Array<f64>;
                         
                         for l in self.layers.iter_mut() {
