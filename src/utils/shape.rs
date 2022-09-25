@@ -1,26 +1,30 @@
-use std::{ops::{Mul, AddAssign, Add}};
+use core::panic;
+use std::{ops::{Mul, AddAssign, Add, Index, IndexMut}, process::exit};
 use rand::{Rng, prelude::Distribution, distributions::Standard};
-use std::time::{Instant};
 #[derive(Clone, Debug)]
 pub struct Array<T> {
-    pub rows: usize,
-    pub cols: usize,
-    pub data: Vec<T>,
+    pub shape: Box<[usize]>,
+    pub sub_size: Box<[usize]>,
+    pub data: Box<[T]>,
 }
 
 impl Array<f64> {
-    pub fn random(rows: usize, cols: usize) -> Self {
+    pub fn random(shape_: &[usize]) -> Self {
         let mut rng = rand::thread_rng();
-        let data = (0..rows * cols).map(|_| rng.gen::<f64>() - 0.5).collect();
-        Array { rows, cols, data }
+        let (shape, sub_size) = Self::parse_shape(shape_);
+
+        let data = (0..sub_size[0]).map(|_| rng.gen::<f64>() - 0.5).collect();
+        Array { shape, sub_size, data }
     }
 }
 
 impl Array<f32> {
-    pub fn random(rows: usize, cols: usize) -> Self {
+    pub fn random(shape_: &[usize]) -> Self {
         let mut rng = rand::thread_rng();
-        let data = (0..rows * cols).map(|_| rng.gen::<f32>() - 0.5).collect();
-        Array { rows, cols, data }
+        let (shape, sub_size) = Self::parse_shape(shape_);
+
+        let data = (0..sub_size[0]).map(|_| rng.gen::<f32>() - 0.5).collect();
+        Array { shape, sub_size, data }
     }
 }
 
@@ -29,130 +33,177 @@ where
     T: Copy + Clone + From<f32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
     Standard: Distribution<T>,
 {
-    pub fn empty(rows: usize, cols: usize) -> Self {
-        Array { rows, cols, data: vec![T::from(0.0); rows * cols] }
+    pub fn empty() -> Self {
+        Array { shape: Box::default(), sub_size: Box::default(), data: Box::default() }
     }
 
-    // pub fn random(rows: usize, cols: usize) -> Self {
-    //     let mut rng = rand::thread_rng();
-    //     let data = (0..rows * cols).map(|_| rng.gen::<T>() - 0.5).collect();
-    //     Array { rows, cols, data }
-    // }
-
-    pub fn fill(rows: usize, cols: usize, value: T) -> Self {
-        Array { rows, cols, data: vec![value; rows * cols] }
+    pub fn zeros(shape_: &[usize]) -> Self {
+        Self::fill(shape_, T::from(0.0))
     }
 
-    pub fn dot(&self, b: &Array<T>) -> Array<T> {
-        if self.cols != b.rows {
-            Array::empty(0, 0)
+    fn parse_shape(shape_: &[usize]) -> (Box<[usize]>, Box<[usize]>) {
+        let mut shape: Vec<usize> = shape_.to_vec();
+        let mut sub_size: Vec<usize> = Vec::new();
+        let mut size = shape.iter().product();
+        if shape.len() == 1 {
+            shape.push(1);
+        }
+
+        for i in 0..shape.len() {
+            sub_size.push(size);
+            size /= shape[i];
+        }
+
+        (shape.into_boxed_slice(), sub_size.into_boxed_slice())
+    }
+
+    pub fn with(shape_: &[usize], data: &[T]) -> Self {
+        let (shape, sub_size) = Self::parse_shape(shape_);
+        if sub_size[0] != data.len() {
+            panic!("Init with data [FAILED]");
         } else {
-            let mut out: Array<T> = Array::empty(self.rows, b.cols);
-            let cols_a = self.cols;
-            let cols_b = b.cols;
-    
-            for i in 0..self.rows {
-                for j in 0..cols_b {
-                    let mut s = T::from(0.0);
-                    for k in 0..cols_a {
-                        s += self.data[i * cols_a + k] * b.data[k * cols_b + j];
-                    }
-                    out.data[i * cols_b + j] = s;
-                }
-            }
-            out
+            Array { shape, sub_size, data: data.into() }
         }
     }
 
-    pub fn to_vec(self) -> Vec<T> {
-        self.data
+    pub fn fill(shape_: &[usize], value: T) -> Self {
+        let (shape, sub_size) = Self::parse_shape(shape_);
+        let size = sub_size[0];
+        Array { shape, sub_size, data: vec![value; size].into_boxed_slice() }
     }
 
-    pub fn t(&self) -> Array<T> {
-        let mut temp: Array<T> = Array::empty(self.cols, self.rows);
+    pub fn dot(&self, b: &Array<T>) -> Array<T> {
+        let len_a = self.shape.len();
+        let len_b = b.shape.len();
+        if self.shape[len_a - 1].ne(&b.shape[len_b - 2]) {
+            panic!("Shapes not aligned {} (dim {}) != {} (dim {})",
+                self.shape[len_a - 1], len_a - 1, b.shape[len_b - 2], len_b - 2);
+        }
 
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                temp.data[j * self.rows + i] = self.data[i * self.cols + j];
+        let mut temp = Self::zeros(&[&self.shape[..len_a - 1], &b.shape[..len_b - 2], &[b.shape[len_b - 1]]].concat());
+
+        let cnt_a = self.sub_size[0] / self.sub_size[self.sub_size.len() - 2];
+        let cnt_b = b.sub_size[0] / b.sub_size[b.sub_size.len() - 2];
+        let ss_a = temp.sub_size[self.shape.len() - 2];
+        let si_a = temp.sub_size[self.shape.len() - 1];
+        let ss_b = temp.sub_size[self.shape.len() + b.shape.len() - 3];
+        let sss_a = self.sub_size[self.sub_size.len() - 2];
+        let sss_b = b.sub_size[b.sub_size.len() - 2];
+
+        let rows_a = self.shape[len_a - 2];
+        let cols_a = self.shape[len_a - 1];
+        let cols_b = b.shape[len_b - 1];
+
+        // println!("{:?} x {:?}", self.shape, b.shape);
+
+        for ca in 0..cnt_a {
+            for i in 0..rows_a {
+                for cb in 0..cnt_b {
+                    for j in 0..cols_b {
+                        let index = ca * ss_a + i * si_a + cb * ss_b + j;
+                        let mut s = T::from(0.0);
+                        for k in 0..cols_a {
+                            s += self.data[ca * sss_a + i * cols_a + k] * b.data[cb * sss_b + k * cols_b + j];
+                        }
+                        temp.data[index] = s;
+                    }
+                }
             }
         }
         temp
     }
 
-    pub fn inc(&mut self, rhs: T) -> &Self {
-        for i in 0..self.rows * self.cols {
+    pub fn to_vec(self) -> Vec<T> {
+        self.data.into_vec()
+    }
+
+    pub fn t(&self) -> Array<T> {
+        if self.shape.len() > 2 {
+            panic!("Unable to transpose for nd array");
+        } else {
+            let mut temp: Array<T> = Array::zeros(&[self.shape[1], self.shape[0]]);
+            let rows = temp.shape[0];
+            let cols = temp.shape[1];
+            
+            for i in 0..rows {
+                for j in 0..cols {
+                    temp.data[j * rows + i] = self.data[i * cols + j];
+                }
+            }
+            temp
+        }
+    }
+
+    pub fn add_v(&mut self, rhs: T) -> &Self {
+        for i in 0..self.data.len() {
             self.data[i] = self.data[i] + rhs;
         }
         self
     }
 
-    pub fn add(&mut self, rhs: &Array<T>) -> &Self {
-        for i in 0..self.rows * self.cols {
-            self.data[i] = self.data[i] + rhs.data[i];
+    pub fn add_m(&mut self, rhs: &Array<T>) -> &Self {
+        if self.data.len() != rhs.data.len() {
+            println!("add_m: dim not match");
+        } else {
+            for i in 0..self.data.len() {
+                self.data[i] = self.data[i] + rhs.data[i];
+            }
         }
         self
     }
 
-    pub fn mul(&mut self, rhs: T) -> &Self {
-        for i in 0..self.rows * self.cols {
+    pub fn mul_v(&mut self, rhs: T) -> &Self {
+        for i in 0..self.data.len() {
             self.data[i] = self.data[i] * rhs;
         }
         self
     }
 }
 
-// impl<T: Add<Output = T>> Add for Array<T>
-// where
-//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T>,
-//     Standard: Distribution<T>,
-// {
-//     type Output = Self;
+impl<T> Index<&[usize]> for Array<T>
+where
+    T: Copy + Clone + From<f32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
+    Standard: Distribution<T>,
+{
+    type Output = T;
 
-//     fn add(self, rhs: Self) -> Self::Output {
-//         assert_eq!(self.rows, rhs.rows);
-//         assert_eq!(self.cols, rhs.cols);
-//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-//         for i in 0..self.rows {
-//             for j in 0..self.cols {
-//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs.data[i * self.cols + j];
-//             }
-//         }
-//         temp
-//     }
-// }
+    fn index(&self, index: &[usize]) -> &Self::Output {
+        let mut id: usize = 0;
+        for i in 0..self.shape.len() {
+            if self.shape[i] > index[i] {
+                if i == self.shape.len() - 1 {
+                    id += index[i];
+                } else {
+                    id += index[i] * self.sub_size[i + 1];
+                }
+            } else {
+                panic!("Indexing out of range");
+            }
+        }
 
-// impl<T> Add<T> for Array<T>
-// where
-//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
-//     Standard: Distribution<T>,
-// {
-//     type Output = Self;
+        &self.data[id]
+    }
+}
 
-//     fn add(self, rhs: T) -> Self::Output {
-//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-//         for i in 0..self.rows {
-//             for j in 0..self.cols {
-//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] + rhs;
-//             }
-//         }
-//         temp
-//     }
-// }
+impl<T> IndexMut<&[usize]> for Array<T>
+where
+    T: Copy + Clone + From<f32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
+    Standard: Distribution<T>,
+{
+    fn index_mut(&mut self, index: &[usize]) -> &mut Self::Output {
+        let mut id: usize = 0;
+        for i in 0..self.shape.len() {
+            if self.shape[i] > index[i] {
+                if i == self.shape.len() - 1 {
+                    id += index[i];
+                } else {
+                    id += index[i] * self.sub_size[i + 1];
+                }
+            } else {
+                panic!("Indexing out of range");
+            }
+        }
 
-// impl<T> Mul<T> for Array<T>
-// where
-//     T: Copy + Clone + From<i32> + Mul<T, Output = T> + AddAssign<T> + Add<Output = T>,
-//     Standard: Distribution<T>,
-// {
-//     type Output = Self;
-
-//     fn mul(self, rhs: T) -> Self::Output {
-//         let mut temp: Array<T> = Array::empty(self.rows, self.cols);
-//         for i in 0..self.rows {
-//             for j in 0..self.cols {
-//                 temp.data[i * self.cols + j] = self.data[i * self.cols + j] * rhs;
-//             }
-//         }
-//         temp
-//     }
-// }
+        &mut self.data[id]
+    }
+}

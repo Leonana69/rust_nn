@@ -1,4 +1,6 @@
 use std::{f64::consts::E};
+
+use super::shape::Array;
 pub trait Operator {
     fn activation(x: f64) -> f64;
     fn derivative(x: f64) -> f64;
@@ -59,11 +61,9 @@ impl Operator for TanH {
     }
 }
 
-pub fn calculate(input: &Vec<f64>, op_cal: fn(f64) -> f64) -> Vec<f64> {
-    let len = input.len();
-    let mut vec = Vec::with_capacity(len);
-    for i in 0..len {
-        vec.push(op_cal(input[i]));
+pub fn calculate(mut input: Array<f64>, op_cal: fn(f64) -> f64) -> Array<f64> {
+    for i in 0..input.sub_size[0] {
+        input.data[i] = op_cal(input.data[i]);
     }
-    vec
+    input
 }

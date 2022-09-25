@@ -19,22 +19,22 @@ impl Sequential  {
         self
     }
 
-    pub fn predict(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    pub fn predict(&mut self, input: &[Vec<f64>], shape: &[usize]) -> Vec<Vec<f64>> {
         let len = input.len();
         let mut output: Vec<Vec<f64>> = Vec::default();
         for i in 0..len {
-            let mut temp_input = &input[i];
-            let mut temp_out: Vec<f64>;
+            let mut temp_input = Array::with(shape, &input[i]);
+            let mut temp_out: Array<f64>;
             for l in self.layers.iter_mut() {
                 temp_out = l.forward_prop(temp_input);
-                temp_input = &temp_out;
+                temp_input = temp_out;
             }
             output.push(temp_input.to_vec());
         }
         output
     }
 
-    pub fn train(&mut self, input: &Vec<Vec<f64>>, truth: &Vec<Vec<f64>>, epoches: usize, batch_size: usize, learning_rate: f64) {
+    pub fn train(&mut self, input: &[Vec<f64>], truth: &[Vec<f64>], intpu_shape: &[usize], epoches: usize, batch_size: usize, learning_rate: f64) {
         let sample_len = input.len();
 
         assert!(sample_len > 0 && truth.len() == sample_len && batch_size > 0 && learning_rate > 0.0);
@@ -55,19 +55,19 @@ impl Sequential  {
                     let mut vec_delta_bias: Vec<Option<Array<f64>>> = Vec::default();
                     let layer_len = self.layers.len();
                     for b in 0..bs {
-                        let mut layer_input = &input[i * batch_size + b];
-                        let mut layer_output: Vec<f64> = Vec::new();
+                        let mut layer_input = Array::with(intpu_shape, &input[i]);
+                        let mut layer_output: Array<f64>;
                         
                         for l in self.layers.iter_mut() {
                             layer_output = l.forward_prop(layer_input);
-                            layer_input = &layer_output;
+                            layer_input = layer_output;
                         }
-                        err += MSE::calculate(&truth[i], &layer_output);
+                        err += MSE::calculate(&truth[i], &layer_input);
                         
                         // backward propagation
-                        let loss = MSE::derivative(&truth[i], &layer_output);
-                        let mut back_input = &loss;
-                        let mut back_output: Vec<f64>;
+                        let loss = MSE::derivative(&truth[i], layer_input);
+                        let mut back_input = loss;
+                        let mut back_output: Array<f64>;
                         let mut delta_weights: Option<Array<f64>>;
                         let mut delta_bias: Option<Array<f64>>;
 
@@ -81,23 +81,23 @@ impl Sequential  {
                             } else {
                                 if let Some(w) = delta_weights {
                                     let vl = vec_delta_weights[l].as_mut().unwrap();
-                                    vl.add(&w);
+                                    vl.add_m(&w);
                                 }
                                 if let Some(b) = delta_bias {
                                     let vl = vec_delta_bias[l].as_mut().unwrap();
-                                    vl.add(&b);
+                                    vl.add_m(&b);
                                 }
                             }
                             
-                            back_input = &back_output;
+                            back_input = back_output;
                         }
                     }
 
                     for l in 0..layer_len {
                         if let Some(_) = &vec_delta_weights[l] {
                             self.layers[layer_len - 1 - l].update_parameters(
-                                vec_delta_weights[l].as_mut().unwrap().mul(-learning_rate),
-                                vec_delta_bias[l].as_mut().unwrap().mul(-learning_rate)
+                                vec_delta_weights[l].as_mut().unwrap().mul_v(-learning_rate),
+                                vec_delta_bias[l].as_mut().unwrap().mul_v(-learning_rate)
                             );
                         }
                     }
