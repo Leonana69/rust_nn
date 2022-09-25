@@ -20,9 +20,9 @@ fn main() {
     let mut model = Sequential::new();
     model.add(DenseLayer::new(784, 100));
     model.add(SigmoidLayer::new());
-    model.add(DenseLayer::new(100, 50));
+    model.add(DenseLayer::new(50));
     model.add(SigmoidLayer::new());
-    model.add(DenseLayer::new(50, 10));
+    model.add(DenseLayer::new(10));
     model.add(SigmoidLayer::new());
 
     let timer = Instant::now();
