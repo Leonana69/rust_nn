@@ -143,8 +143,8 @@ impl DenseLayer {
 
 impl Layer for DenseLayer {
     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        self.input = input.clone();
-        let mut w = input.dot(&self.weights);
+        self.input = input;
+        let mut w = self.input.dot(&self.weights);
         w.add_m(&self.bias);
         w
     }
@@ -163,45 +163,69 @@ impl Layer for DenseLayer {
 }
 
 pub struct Conv2DLayer {
+    pub kernel_size: usize,
     pub input: Array<f64>,
     pub weights: Array<f64>,
     pub bias: Array<f64>,
 }
 
-// impl Conv2DLayer {
-//     pub fn new(output_channel: usize, kernel_size: usize, input_shape: &[usize]) -> Self {
-//         Conv2DLayer {
-//             input: Array::zeros(&[0]),
-//             weights: Array::<f64>::random(&[input_shape[0] - kernel_size + 1, input_shape[1] - kernel_size + 1, output_channel]),
-//             bias: Array::zeros(&[1, output_channel]),
-//         }
-//     }
-// }
+impl Conv2DLayer {
+    pub fn new(output_channel: usize, kernel_size: usize, input_shape: &[usize]) -> Self {
+        Conv2DLayer {
+            kernel_size,
+            input: Array::empty(),
+            weights: Array::<f64>::random(&[input_shape[0] - kernel_size + 1, input_shape[1] - kernel_size + 1, output_channel]),
+            bias: Array::zeros(&[output_channel]),
+        }
+    }
+}
 
-// impl Layer for Conv2DLayer {
-//     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        
-//     }
+impl Layer for Conv2DLayer {
+    fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
+        let o_rows = self.weights.shape[0];
+        let o_cols = self.weights.shape[1];
+        let o_ch = self.weights.shape[2];
+        let i_ch = input.shape[2];
 
-//     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-//         let error_array = Array::with(&[1, self.weights.shape[1]], &error.to_vec());
+        let k_size = self.kernel_size;
 
-//         let input_error = error_array.dot(&self.weights.t());
-//         let weights_error = self.input.dot(&error_array);
+        let mut res: Array<f64> = Array::zeros(&[o_rows, o_cols, o_ch]);
 
-//         (input_error.to_vec(), Some(weights_error), Some(error_array))
-//     }
+        for i in 0..o_rows {
+            for j in 0..o_cols {
+                for k in 0..o_ch {
+                    for ik in 0..i_ch {
+                        for ki in 0..k_size {
+                            for kj in 0..k_size {
+                                res[&[i, j, k]] += self.weights[&[ki, kj, ik, k]] * input[&[i + ki, j + kj, ik]];
+                            }
+                        }
+                    }
+                    res[&[i, j, k]] += self.bias[&[k, 0]];
+                }
+            }
+        }
+        res
+    }
 
-//     fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {
-//         self.weights.add_m(delta_weights);
-//         self.bias.add_m(delta_bias);
-//     }
+    fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
+        // TODO!
+        // dL/dX = full-conv(weights.rotate(180), error)
+        // dL/dW = conv(input, error)
+        // dL/dB = sum(error)
+        (Array::empty(), None, None)
+    }
 
-//     fn set_parameters(&mut self, weights: &Array<f64>, bias: &Array<f64>) {
-//         self.weights = weights.clone();
-//         self.bias = bias.clone();
-//     }
-// }
+    fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {
+        self.weights.add_m(delta_weights);
+        self.bias.add_m(delta_bias);
+    }
+
+    fn set_parameters(&mut self, weights: &Array<f64>, bias: &Array<f64>) {
+        self.weights = weights.clone();
+        self.bias = bias.clone();
+    }
+}
 
 // fn Conv2D(w: Array<f64>, b: Array<f64>, input: Array<f64>) -> Array<f64> {
 //     let o_rows = input.shape[0] - w.shape[0] + 1;
