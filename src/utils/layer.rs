@@ -193,10 +193,10 @@ impl Conv2DLayer {
 
 impl Layer for Conv2DLayer {
     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64> {
-        let o_rows = self.weights.shape[0];
-        let o_cols = self.weights.shape[1];
-        let o_ch = self.weights.shape[2];
-        let i_ch = input.shape[2];
+        let o_rows = self.output_shape[0];
+        let o_cols = self.output_shape[1];
+        let o_ch = self.weights.shape[3];
+        let i_ch = self.weights.shape[2];
 
         let k_size = self.kernel_size;
 

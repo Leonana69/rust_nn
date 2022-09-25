@@ -4,7 +4,7 @@ use utils::{layer::{DenseLayer, SigmoidLayer, Conv2DLayer}, model::Sequential, s
 use utils::{dataset::MnistData};
 use std::{time::{Instant}, fs};
 
-use crate::utils::layer::InputLayer;
+use crate::utils::layer::{InputLayer, ReLULayer};
 
 fn main() {
     // test_mnist();
@@ -40,19 +40,19 @@ fn test_face() {
     for s in sp {
         input_img.push(s.parse::<f64>().unwrap());
     }
-    let input_img = Array::with(&[64, 64, 3], &input_img);
-    println!("{}", input_img.data.len());
     
 
     let mut model = Sequential::new();
     model.add(InputLayer::new(&[64, 64, 3]));
     model.add(Conv2DLayer::new(32, 3));
+    model.add(ReLULayer::new());
     model.compile();
-
     model.layers[1].set_parameters(weights, bias);
 
-    // model.predict();
+    let res = model.predict(&[input_img]);
 
+    let res_str: Vec<String> = res[0].iter().map(|n| n.to_string()).collect();
+    fs::write("./resource/temp.txt", res_str.join(", ").as_bytes()).unwrap();
 }
 
 #[allow(dead_code)]
