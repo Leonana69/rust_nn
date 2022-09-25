@@ -1,8 +1,8 @@
 mod utils;
 
-use utils::{layer::{DenseLayer, SigmoidLayer, Conv2DLayer}, model::Sequential};
+use utils::{layer::{DenseLayer, SigmoidLayer, Conv2DLayer}, model::Sequential, shape::Array};
 use utils::{dataset::MnistData};
-use std::time::{Instant};
+use std::{time::{Instant}, fs};
 
 use crate::utils::layer::InputLayer;
 
@@ -12,13 +12,39 @@ fn main() {
 }
 
 fn test_face() {
+    // load bias
+    let content = fs::read("./resource/bias.txt").unwrap();
+    let content = std::str::from_utf8(&content).unwrap();
+    let sp = content.split(",");
+    let mut bias = Vec::<f64>::new();
+    for s in sp {
+        bias.push(s.parse::<f64>().unwrap());
+    }
+    let bias = Array::with(&[32], &bias);
+
+    // load weights
+    let content = fs::read("./resource/weights.txt").unwrap();
+    let content = std::str::from_utf8(&content).unwrap();
+    let sp = content.split(",");
+    let mut weights = Vec::<f64>::new();
+    for s in sp {
+        weights.push(s.parse::<f64>().unwrap());
+    }
+    let weights = Array::with(&[3, 3, 3, 32], &weights);
+    
+
     let mut model = Sequential::new();
     model.add(InputLayer::new(&[64, 64, 3]));
     model.add(Conv2DLayer::new(32, 3));
     model.add(SigmoidLayer::new());
     model.compile();
+
+
+    model.layers[1].set_parameters(weights, bias);
+
 }
 
+#[allow(dead_code)]
 fn test_mnist() {
     // load Mnist training and test dataset
     println!("Loading data...");

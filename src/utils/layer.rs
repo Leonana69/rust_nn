@@ -7,7 +7,7 @@ pub trait Layer {
     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>);
     fn config_shape(&mut self, prev_output_shape: &[usize]);
     fn update_parameters(&mut self, _delta_weights: &Array<f64>, _delta_bias: &Array<f64>) {}
-    fn set_parameters(&mut self, _weights: &Array<f64>, _bias: &Array<f64>) {}
+    fn set_parameters(&mut self, _weights: Array<f64>, _bias: Array<f64>) {}
     fn get_output_shape(&self) -> &Box<[usize]>;
 }
 
@@ -232,7 +232,7 @@ impl Layer for Conv2DLayer {
         self.bias.add_m(delta_bias);
     }
 
-    fn set_parameters(&mut self, weights: &Array<f64>, bias: &Array<f64>) {
+    fn set_parameters(&mut self, weights: Array<f64>, bias: Array<f64>) {
         if self.weights.shape.len() == weights.shape.len() {
             for i in 0..weights.shape.len() {
                 if self.weights.shape[i] != weights.shape[i] {
@@ -242,12 +242,12 @@ impl Layer for Conv2DLayer {
         } else {
             panic!("[Conv2D] weights dim not match.");
         }
-        self.weights = weights.clone();
+        self.weights = weights;
 
         if bias.shape.len() != 2 || bias.sub_size[0] != self.bias.sub_size[0] {
             panic!("[Conv2D] bias dim/shape not match.");
         }
-        self.bias = bias.clone();
+        self.bias = bias;
     }
 
     fn config_shape(&mut self, prev_output_shape: &[usize]) {
