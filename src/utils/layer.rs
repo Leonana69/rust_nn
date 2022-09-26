@@ -20,7 +20,7 @@ pub struct InputLayer {
 impl InputLayer {
     pub fn new(input: &[usize]) -> Self {
         InputLayer {
-            input: Array::empty(),
+            input: Array::<f64>::empty(),
             input_shape: input.into(),
             output_shape: input.into(),
         }
@@ -50,10 +50,11 @@ macro_rules! new_activation_layer {
             pub output_shape: Box<[usize]>,
         }
 
+        #[allow(dead_code)]
         impl $struct {
             pub fn new() -> Self {
                 $struct {
-                    input: Array::empty(),
+                    input: Array::<f64>::empty(),
                     input_shape: Box::default(),
                     output_shape: Box::default(),
                 }
@@ -77,7 +78,7 @@ macro_rules! new_activation_layer {
             }
         
             fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>) {
-                let mut input = Array::empty();
+                let mut input = Array::<f64>::empty();
                 input = replace(&mut self.input, input);
                 let mut deriv = calculate(input, $type::derivative);
                 for i in 0..error.sub_size[0] {
@@ -118,9 +119,9 @@ impl DenseLayer {
             // input: Array::zeros(&[input_size]),
             // weights: Array::<f64>::random(&[input_size, output_size]),
             // bias: Array::zeros(&[1, output_size]),
-            input: Array::empty(),
-            weights: Array::empty(),
-            bias: Array::zeros(&[1, output_size]),
+            input: Array::<f64>::empty(),
+            weights: Array::<f64>::empty(),
+            bias: Array::<f64>::zeros(&[1, output_size]),
             input_shape: Box::default(),
             output_shape: Box::new([1, output_size]),
         }
@@ -159,7 +160,7 @@ impl Layer for DenseLayer {
 
     fn config_shape(&mut self, prev_output_shape: &[usize]) {
         self.input_shape = prev_output_shape.into();
-        self.weights = Array::<f64>::random(&[prev_output_shape[1], self.output_shape[1]]);
+        self.weights = Array::<f64>::random_default(&[prev_output_shape[1], self.output_shape[1]]);
         println!("[Dense] config shape: {:?}", self.weights.shape);
     }
 
@@ -181,10 +182,10 @@ impl Conv2DLayer {
     pub fn new(output_channel: usize, kernel_size: usize) -> Self {
         Conv2DLayer {
             kernel_size,
-            input: Array::empty(),
+            input: Array::<f64>::empty(),
             // weights: Array::<f64>::random(&[input_shape[0] - kernel_size + 1, input_shape[1] - kernel_size + 1, output_channel]),
-            weights: Array::empty(),
-            bias: Array::zeros(&[output_channel]),
+            weights: Array::<f64>::empty(),
+            bias: Array::<f64>::zeros(&[output_channel]),
             input_shape: Box::default(),
             output_shape: Box::default(),
         }
@@ -200,7 +201,7 @@ impl Layer for Conv2DLayer {
 
         let k_size = self.kernel_size;
 
-        let mut res: Array<f64> = Array::zeros(&[o_rows, o_cols, o_ch]);
+        let mut res: Array<f64> = Array::<f64>::zeros(&[o_rows, o_cols, o_ch]);
 
         for i in 0..o_rows {
             for j in 0..o_cols {
@@ -224,7 +225,7 @@ impl Layer for Conv2DLayer {
         // dL/dX = full-conv(weights.rotate(180), error)
         // dL/dW = conv(input, error)
         // dL/dB = sum(error)
-        (Array::empty(), None, None)
+        (Array::<f64>::empty(), None, None)
     }
 
     fn update_parameters(&mut self, delta_weights: &Array<f64>, delta_bias: &Array<f64>) {
@@ -251,7 +252,7 @@ impl Layer for Conv2DLayer {
     }
 
     fn config_shape(&mut self, prev_output_shape: &[usize]) {
-        self.weights = Array::<f64>::random(&[
+        self.weights = Array::<f64>::random_default(&[
             self.kernel_size, self.kernel_size,
             prev_output_shape[2], // input channel
             self.bias.sub_size[0] // output channel

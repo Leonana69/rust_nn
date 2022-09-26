@@ -21,7 +21,7 @@ fn test_face() {
     for s in sp {
         bias.push(s.parse::<f64>().unwrap());
     }
-    let bias = Array::with(&[32], &bias);
+    let bias = Array::<f64>::with(&[32], &bias);
 
     // load weights
     let content = fs::read("./resource/weights.txt").unwrap();
@@ -31,7 +31,7 @@ fn test_face() {
     for s in sp {
         weights.push(s.parse::<f64>().unwrap());
     }
-    let weights = Array::with(&[3, 3, 3, 32], &weights);
+    let weights = Array::<f64>::with(&[3, 3, 3, 32], &weights);
 
     // load image
     let content = fs::read("./resource/test_image.txt").unwrap();

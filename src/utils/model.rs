@@ -30,7 +30,7 @@ impl Sequential  {
         let len = input.len();
         let mut output: Vec<Vec<f64>> = Vec::default();
         for i in 0..len {
-            let mut temp_input = Array::with(self.layers[0].get_output_shape(), &input[i]);
+            let mut temp_input = Array::<f64>::with(self.layers[0].get_output_shape(), &input[i]);
             let mut temp_out: Array<f64>;
             for l in self.layers.iter_mut() {
                 temp_out = l.forward_prop(temp_input);
@@ -62,7 +62,7 @@ impl Sequential  {
                     let mut vec_delta_bias: Vec<Option<Array<f64>>> = Vec::default();
                     let layer_len = self.layers.len();
                     for b in 0..bs {
-                        let mut layer_input = Array::with(self.layers[0].get_output_shape(), &input[i]);
+                        let mut layer_input = Array::<f64>::with(self.layers[0].get_output_shape(), &input[i]);
                         let mut layer_output: Array<f64>;
                         
                         for l in self.layers.iter_mut() {
