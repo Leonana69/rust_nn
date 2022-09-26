@@ -1,5 +1,5 @@
 use core::panic;
-use std::{ops::{Mul, AddAssign, Add, Index, IndexMut}, process::exit};
+use std::{ops::{Mul, AddAssign, Add, Index, IndexMut}};
 use rand::{Rng, prelude::Distribution, distributions::Standard};
 #[derive(Clone, Debug)]
 pub struct Array<T> {

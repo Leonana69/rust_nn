@@ -7,10 +7,11 @@ use std::{time::{Instant}, fs};
 use crate::utils::layer::{InputLayer, ReLULayer};
 
 fn main() {
-    // test_mnist();
-    test_face();
+    test_mnist();
+    // test_face();
 }
 
+#[allow(dead_code)]
 fn test_face() {
     // load bias
     let content = fs::read("./resource/bias.txt").unwrap();
@@ -85,7 +86,8 @@ fn test_mnist() {
 
     let res = model.predict(&test_image_data.data[0..4]);
     for i in 0..res.len() {
-        println!("{:?}", &res[i]);
-        println!("{:?}", &test_label_data.data[i]);
+        println!("Case {i}:");
+        println!("guess: {:.2?}", &res[i]);
+        println!("truth: {:.2?}", &test_label_data.data[i]);
     }
 }

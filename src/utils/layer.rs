@@ -1,7 +1,7 @@
 use std::mem::replace;
 
-use super::{ops::{ Sigmoid, ReLU, Operator, calculate, TanH, ReLU6 }, shape::Array, loss::MSE};
-use crate::utils::loss::Loss;
+use super::{ops::{ Sigmoid, ReLU, Operator, calculate, TanH, ReLU6 }, shape::Array};
+
 pub trait Layer {
     fn forward_prop(&mut self, input: Array<f64>) -> Array<f64>;
     fn backward_prop(&mut self, error: Array<f64>) -> (Array<f64>, Option<Array<f64>>, Option<Array<f64>>);
