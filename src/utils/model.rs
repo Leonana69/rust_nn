@@ -19,6 +19,7 @@ impl Sequential  {
         self
     }
 
+    /* config input_shape for each layer */
     pub fn compile(&mut self) {
         for l in 1..self.layers.len() {
             let prev_output_shape = self.layers[l - 1].get_output_shape().clone();
@@ -26,6 +27,7 @@ impl Sequential  {
         }
     }
 
+    /* make prediction */
     pub fn predict(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let len = input.len();
         let mut output: Vec<Vec<f64>> = Vec::default();

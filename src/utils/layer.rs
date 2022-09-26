@@ -116,9 +116,6 @@ pub struct DenseLayer {
 impl DenseLayer {
     pub fn new(output_size: usize) -> Self {
         DenseLayer {
-            // input: Array::zeros(&[input_size]),
-            // weights: Array::<f64>::random(&[input_size, output_size]),
-            // bias: Array::zeros(&[1, output_size]),
             input: Array::<f64>::empty(),
             weights: Array::<f64>::empty(),
             bias: Array::<f64>::zeros(&[1, output_size]),

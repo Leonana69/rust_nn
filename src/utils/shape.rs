@@ -13,11 +13,7 @@ macro_rules! new_float_impl_for_array {
         #[allow(dead_code)]
         impl Array<$type> {
             pub fn random_default(shape_: &[usize]) -> Self {
-                let mut rng = rand::thread_rng();
-                let (shape, sub_size) = Self::parse_shape(shape_);
-        
-                let data = (0..sub_size[0]).map(|_| rng.gen::<$type>() - 0.5).collect();
-                Array { shape, sub_size, data }
+                Self::random(shape_, -1.0, 1.0)
             }
 
             pub fn random(shape_: &[usize], low: $type, high: $type) -> Self {
@@ -38,11 +34,7 @@ macro_rules! new_int_impl_for_array {
         #[allow(dead_code)]
         impl Array<$type> {
             pub fn random_default(shape_: &[usize]) -> Self {
-                let mut rng = rand::thread_rng();
-                let (shape, sub_size) = Self::parse_shape(shape_);
-        
-                let data = (0..sub_size[0]).map(|_| rng.gen::<$type>()).collect();
-                Array { shape, sub_size, data }
+                Self::random(shape_, -128, 127)
             }
 
             pub fn random(shape_: &[usize], low: $type, high: $type) -> Self {
@@ -62,14 +54,6 @@ macro_rules! new_impl_for_array {
     ($type:ident) => {
         #[allow(dead_code)]
         impl Array<$type> {
-            // pub fn random_default(shape_: &[usize]) -> Self {
-            //     let mut rng = rand::thread_rng();
-            //     let (shape, sub_size) = Self::parse_shape(shape_);
-        
-            //     let data = (0..sub_size[0]).map(|_| rng.gen::<$type>() - 0.5).collect();
-            //     Array { shape, sub_size, data }
-            // }
-
             pub fn empty() -> Self {
                 Array { shape: Box::default(), sub_size: Box::default(), data: Box::default() }
             }
@@ -79,6 +63,8 @@ macro_rules! new_impl_for_array {
             }
 
             fn parse_shape(shape_: &[usize]) -> (Box<[usize]>, Box<[usize]>) {
+                // shape_: &[a] --> (shape: Box<[a, 1]>, sub_size: Box<[a, 1]>)
+                // shape_: &[a, b, c, ...] --> (shape: Box<[a, b, c, ...]>, sub_size: Box<[a*b*c*..., b*c*..., c*..., ...]>)
                 let mut shape: Vec<usize> = shape_.to_vec();
                 let mut sub_size: Vec<usize> = Vec::new();
                 let mut size = shape.iter().product();
@@ -113,6 +99,9 @@ macro_rules! new_impl_for_array {
                 self.data.into_vec()
             }
 
+            /* matrix multiplication 
+             * [a1, a2, ..., an] * [b1, b2, ..., bm] --> [a1, ..., a(n-1), b1, ..., b(m-2), bm]
+             */
             pub fn dot(&self, b: &Array<$type>) -> Array<$type> {
                 let len_a = self.shape.len();
                 let len_b = b.shape.len();
@@ -135,8 +124,6 @@ macro_rules! new_impl_for_array {
                 let cols_a = self.shape[len_a - 1];
                 let cols_b = b.shape[len_b - 1];
         
-                // println!("{:?} x {:?}", self.shape, b.shape);
-        
                 for ca in 0..cnt_a {
                     for i in 0..rows_a {
                         for cb in 0..cnt_b {
@@ -154,6 +141,7 @@ macro_rules! new_impl_for_array {
                 temp
             }
 
+            /* transpose */
             pub fn t(&self) -> Array<$type> {
                 if self.shape.len() > 2 {
                     panic!("Unable to transpose for nd array");
@@ -170,14 +158,16 @@ macro_rules! new_impl_for_array {
                     temp
                 }
             }
-        
+            
+            /* add a constant value */
             pub fn add_v(&mut self, rhs: $type) -> &Self {
                 for i in 0..self.data.len() {
                     self.data[i] = self.data[i] + rhs;
                 }
                 self
             }
-        
+            
+            /* element wise add */
             pub fn add_m(&mut self, rhs: &Array<$type>) -> &Self {
                 if self.data.len() != rhs.data.len() {
                     println!("add_m: dim not match");
@@ -188,7 +178,8 @@ macro_rules! new_impl_for_array {
                 }
                 self
             }
-        
+            
+            /* multiplied by a constant */
             pub fn mul_v(&mut self, rhs: $type) -> &Self {
                 for i in 0..self.data.len() {
                     self.data[i] = self.data[i] * rhs;
@@ -199,9 +190,9 @@ macro_rules! new_impl_for_array {
 
         impl Index<&[usize]> for Array<$type> {
             type Output = $type;
-
             fn index(&self, index: &[usize]) -> &Self::Output {
                 let mut id: usize = 0;
+                // check index
                 for i in 0..self.shape.len() {
                     if self.shape[i] > index[i] {
                         if i == self.shape.len() - 1 {
@@ -221,6 +212,7 @@ macro_rules! new_impl_for_array {
         impl IndexMut<&[usize]> for Array<$type> {
             fn index_mut(&mut self, index: &[usize]) -> &mut Self::Output {
                 let mut id: usize = 0;
+                // check index
                 for i in 0..self.shape.len() {
                     if self.shape[i] > index[i] {
                         if i == self.shape.len() - 1 {

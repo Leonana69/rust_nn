@@ -50,7 +50,9 @@ fn test_face() {
     model.compile();
     model.layers[1].set_parameters(weights, bias);
 
+    let timer = Instant::now();
     let res = model.predict(&[input_img]);
+    println!("Predict time: {} ms", timer.elapsed().as_millis());
 
     let res_str: Vec<String> = res[0].iter().map(|n| n.to_string()).collect();
     fs::write("./resource/temp.txt", res_str.join(", ").as_bytes()).unwrap();
